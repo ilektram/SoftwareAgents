@@ -15,7 +15,7 @@ Q_inited = False
 
 # Set learning parameters
 lr = .9
-gamma = .80
+gamma = .8
 num_episodes = 0
 
 done = False
@@ -26,7 +26,7 @@ rList = []
 i = 0
 games_won = 0
 
-for i in range(1000):
+for i in range(500):
     num_episodes += 1
 
     # Get the environment and extract the number of actions.
@@ -43,12 +43,12 @@ for i in range(1000):
 
     # Reset environment and get first new observation
     state = env.reset()
-    env.render()
+    # env.render()
     rAll = 0
     t = 0
 
     # The Q-learning algorithm
-    while t < 100000:
+    while t < 10000:
         t += 1
         #print("State:", state)
 
@@ -66,12 +66,13 @@ for i in range(1000):
 
         # Get new state and reward from environment
         state1, reward, done, info = env.step(action)
-        env.render()
+        #  env.render()
 
         #print("Reward: {}".format(reward))
 
         # Update Q-Table with new knowledge
         #print("Will update with value {}".format(lr * (reward + gamma * np.max(Q[state1, :]) - Q[state, action])))
+        # reward = reward * num_episodes / t
         Q[state, action] = Q[state, action] + lr * (reward + gamma * np.max(Q[state1, :]) - Q[state, action])
 
         rAll += reward
@@ -81,19 +82,18 @@ for i in range(1000):
                 Q[state, action] = -1.0
             else:
                 print("Solved it")
+                games_won += 1
             print("-----------------------------------------------------------------------")
-            games_won += 1
             break
 
         state = state1
 
-    tList.append(t)
+    tList.append(num_episodes)
     rList.append(rAll)
     # print("End of Episode", i, "\n")
 
-
-
 print("Final Q table:")
-print(Q)
-print("Score over time: " + str(sum(rList)/num_episodes))
-print("Percentage of games won:", games_won/num_episodes)
+print(Q, "\n")
+print("Score over time:", str(sum(rList) / num_episodes))
+print("Last score:", str(rList[-1]))
+print("Percentage of games won:", games_won / num_episodes)
