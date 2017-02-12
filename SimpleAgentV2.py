@@ -16,7 +16,7 @@ Q_inited = False
 # Set learning parameters
 lr = .9
 gamma = .80
-num_episodes = 100000
+num_episodes = 0
 
 done = False
 
@@ -24,8 +24,11 @@ done = False
 tList = []
 rList = []
 i = 0
+games_won = 0
 
 for i in range(1000):
+    num_episodes += 1
+
     # Get the environment and extract the number of actions.
     env = gym.make(ENV_NAME)
     np.random.seed(123)
@@ -79,6 +82,7 @@ for i in range(1000):
             else:
                 print("Solved it")
             print("-----------------------------------------------------------------------")
+            games_won += 1
             break
 
         state = state1
@@ -87,6 +91,9 @@ for i in range(1000):
     rList.append(rAll)
     # print("End of Episode", i, "\n")
 
+
+
 print("Final Q table:")
 print(Q)
 print("Score over time: " + str(sum(rList)/num_episodes))
+print("Percentage of games won:", games_won/num_episodes)
