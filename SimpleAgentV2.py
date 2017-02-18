@@ -5,7 +5,7 @@ import gym
 import numpy as np
 
 
-
+# Define environment
 ENV_NAME = 'FrozenLake8x8-v0'
 gym.undo_logger_setup()
 
@@ -16,15 +16,14 @@ Q_inited = False
 # Set learning parameters
 lr = .9
 gamma = .8
-num_episodes = 0
+num_episodes = 0 # number of games played during training
 
 done = False
 
 # Create lists to contain total rewards and steps per episode
-tList = []
-rList = []
-i = 0
-games_won = 0
+tList = [] # time steps in a game
+rList = [] # rewards at each time step
+games_won = 0 # games that agent has won
 
 for i in range(500):
     num_episodes += 1
@@ -34,18 +33,18 @@ for i in range(500):
     np.random.seed(123)
     env.seed(123)
 
-    # Initialize table with all zeros
+    # Initialize table with all zeros Q not already defined
     if not Q_inited:
-        print("Observation space length: {}".format(env.observation_space.n))
-        print("Action space length: {}".format(env.action_space.n))
-        Q = np.ones([env.observation_space.n, env.action_space.n]) * 0
-        Q_inited = True
+        print("Observation space length: {}".format(env.observation_space.n)) # documents the results of the agent's action
+        print("Action space length: {}".format(env.action_space.n)) # lists the possible values agent must choose from
+        Q = np.ones([env.observation_space.n, env.action_space.n]) * 0 # get all zeros initial Q matrix
+        Q_inited = True # once initialised in a game Q must not be reset in that game
 
     # Reset environment and get first new observation
     state = env.reset()
     # env.render()
-    rAll = 0
-    t = 0
+    rAll = 0 # cumulative rewards
+    t = 0 # time steps in a game
 
     # The Q-learning algorithm
     while t < 10000:
@@ -56,9 +55,9 @@ for i in range(500):
 
         # Choose an action by greedily (with noise) picking from Q table
         # action = np.argmax(Q[state, :] + np.random.rand(1, env.action_space.n) * (1. / (i + 1)))
-        Q_temp = Q[state, :] + np.random.rand(1, env.action_space.n) * (1. / (i + 1))
+        Q_temp = Q[state, :] + np.random.rand(1, env.action_space.n) * (1. / (i + 1)) # possible actions to select from
         # print(Q_temp)
-        action = np.argmax(Q_temp)
+        action = np.argmax(Q_temp) # select optimal action
 
 
         #print("Took action {}".format(action))
@@ -77,6 +76,7 @@ for i in range(500):
 
         rAll += reward
         if done:
+            # if the agent has not won yet penalise that state by inserting -1 in the Q matrix
             if state1 != 63:
                 print(Q[state, :])
                 Q[state, action] = -1.0
@@ -85,7 +85,6 @@ for i in range(500):
                 games_won += 1
             print("-----------------------------------------------------------------------")
             break
-
         state = state1
 
     tList.append(num_episodes)
