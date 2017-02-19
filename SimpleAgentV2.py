@@ -16,7 +16,8 @@ Q_inited = False
 # Set learning parameters
 lr = .9
 gamma = .8
-num_episodes = 0 # number of games played during training
+num_episodes = 0  # number of games played during training
+epsilon = .4
 
 done = False
 
@@ -47,7 +48,7 @@ for i in range(500):
     t = 0 # time steps in a game
 
     # The Q-learning algorithm
-    while t < 10000:
+    while t < 1000:
         t += 1
         #print("State:", state)
 
@@ -55,9 +56,14 @@ for i in range(500):
 
         # Choose an action by greedily (with noise) picking from Q table
         # action = np.argmax(Q[state, :] + np.random.rand(1, env.action_space.n) * (1. / (i + 1)))
-        Q_temp = Q[state, :] + np.random.rand(1, env.action_space.n) * (1. / (i + 1)) # possible actions to select from
+        # Q_temp = Q[state, :] + np.random.rand(1, env.action_space.n) * (1. / (i + 1)) # possible actions to select from
+        # action = np.argmax(Q_temp)  # select optimal action
+
         # print(Q_temp)
-        action = np.argmax(Q_temp) # select optimal action
+        if (np.random.rand() < epsilon):
+            action = env.action_space.sample()
+        else:
+            action = np.argmax(Q[state, :])  # select optimal action
 
 
         #print("Took action {}".format(action))
@@ -71,7 +77,7 @@ for i in range(500):
 
         # Update Q-Table with new knowledge
         #print("Will update with value {}".format(lr * (reward + gamma * np.max(Q[state1, :]) - Q[state, action])))
-        # reward = reward * num_episodes / t
+        reward = reward - reward * t / num_episodes # add increased reward as episodes increase but decreased as steps in episode increase
         Q[state, action] = Q[state, action] + lr * (reward + gamma * np.max(Q[state1, :]) - Q[state, action])
 
         rAll += reward
@@ -81,11 +87,12 @@ for i in range(500):
                 print(Q[state, :])
                 Q[state, action] = -1.0
             else:
-                print("Solved it")
+                print("Solved it in {} steps".format(t))
                 games_won += 1
             print("-----------------------------------------------------------------------")
             break
         state = state1
+    epsilon = epsilon / 1.1
 
     tList.append(num_episodes)
     rList.append(rAll)
