@@ -119,6 +119,8 @@ for i in range(500):
 
         elif done and state1 == 63:
             Qtarget[0, action] = reward
+            if t <= min(tList):
+                Qtarget[0, action] += 1
 
         else:
             Qtarget[0, action] += gamma * np.max(Q1 - np.mean(Q1))
