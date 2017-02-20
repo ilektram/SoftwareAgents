@@ -8,7 +8,7 @@ import numpy as np
 # Define environment
 ENV_NAME = 'FrozenLake8x8-v0'
 gym.undo_logger_setup()
-games_to_play = 1000
+games_to_play = 5000
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -16,7 +16,7 @@ Q_inited = False
 
 # Set learning parameters
 lr = .9
-gamma = .6
+gamma = .9
 num_episodes = 0  # number of games played during training
 e = 1
 
@@ -37,7 +37,7 @@ for i in range(games_to_play):
     if not Q_inited:
         print("Observation space length: {}".format(env.observation_space.n)) # documents the results of the agent's action
         print("Action space length: {}".format(env.action_space.n)) # lists the possible values agent must choose from
-        Q = np.ones([env.observation_space.n, env.action_space.n]) * 0.1 # get all zeros initial Q matrix
+        Q = np.ones([env.observation_space.n, env.action_space.n]) * 0.001 # get all zeros initial Q matrix
         Q_inited = True # once initialised in a game Q must not be reset in that game
 
     # Reset environment and get first new observation
@@ -55,7 +55,6 @@ for i in range(games_to_play):
 
         # Choose an action by greedily (with noise) picking from Q table
 
-        # print(Q_temp)
         if (np.random.rand() < epsilon):
             action = env.action_space.sample()
         else:
@@ -67,13 +66,15 @@ for i in range(games_to_play):
 
         # Get new state and reward from environment
         state1, reward, done, info = env.step(action)
+
+
         # env.render()
 
         #print("Reward: {}".format(reward))
 
         # Update Q-Table with new knowledge
         #print("Will update with value {}".format(lr * (reward + gamma * np.max(Q[state1, :]) - Q[state, action])))
-        reward = reward - reward * t / 100
+        reward -= reward * t / 100
         Q[state, action] = Q[state, action] + lr * (reward + gamma * np.max(Q[state1, :]) - Q[state, action])
 
         rAll += reward
@@ -90,7 +91,7 @@ for i in range(games_to_play):
         state = state1
         if epsilon > 0:
             epsilon -= 1 / 100
-    if e > .01:
+    if e > .05:
         e -= 1 / games_to_play
 
     tList.append(num_episodes)
@@ -100,22 +101,37 @@ for i in range(games_to_play):
 print("Final Q table:")
 print(Q, "\n")
 print("Final epsilon:", e)
-print("Score over time:", str(sum(rList) / num_episodes))
-print("Last score:", str(rList[-1]))
-print("Percentage of games won:", games_won / num_episodes)
+print("Average score per episode:", str(sum(rList) / num_episodes))
+print("Last episode score:", str(rList[-1]))
+print("Proportion of episodes won:", games_won / num_episodes)
 
-# Test the algorithm
-# Reset environment
-state = env.reset()
-t = 0 # time
-while t < 100:
-    t += 1
-    action = np.argmax(Q[state, :])  # select optimal action
-    state1, reward, done, info = env.step(action)
-    reward = reward - reward * t / 100
-    Q[state, action] = Q[state, action] + lr * (reward + gamma * np.max(Q[state1, :]) - Q[state, action])
-    env.render()
-    if done:
-        print("Solved in {} steps".format(t))
-        break
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
