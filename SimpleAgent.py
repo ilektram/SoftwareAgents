@@ -26,7 +26,7 @@ Q = np.ones([env.observation_space.n, env.action_space.n]) * 0
 # Set learning parameters
 lr = .1
 gamma = .80
-num_episodes = 100000
+num_episodes = 10000
 
 # Create lists to contain total rewards and steps per episode
 tList = []
