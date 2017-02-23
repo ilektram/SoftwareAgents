@@ -1,5 +1,6 @@
 
 import os
+from collections import deque
 
 import gym
 import numpy as np
@@ -8,17 +9,36 @@ from keras.models import Sequential
 from keras.layers import Dense, Activation, Flatten
 from keras.layers.core import Reshape
 from keras.layers.embeddings import Embedding
-from keras.optimizers import SGD, Adam
+from keras.optimizers import SGD, Adam, RMSprop
 
 
 # Define environment
 ENV_NAME = 'FrozenLake8x8-v0'
 gym.undo_logger_setup()
+games_to_play = 5000
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 env = gym.make(ENV_NAME)
 Q_inited = False
+MEM = deque([], 100)
+
+
+def create_batch():
+    indices = np.random.choice(len(MEM), size=12)
+    indices[0] = 0  # We need the most recent to definitely be used in the training
+    x = np.zeros((len(indices), in_shape))
+    y = np.zeros((len(indices), nb_actions))
+    length = len(indices)
+
+    for idx, sample_idx in enumerate(indices):
+        cur_state, weights = MEM[sample_idx]
+        x[idx] = np.identity(in_shape)[cur_state].reshape(1, in_shape)
+        y[idx] = weights
+
+    return x, y, length
+
+
 
 if "n" in dir(env.action_space):
     nb_actions = env.action_space.n
@@ -36,25 +56,26 @@ else:
     raise TypeError("No n or shape in observation space :-O")
 
 # Set learning parameters
-lr = .5
-gamma = .5
+lr = .1
+gamma = .9
 num_episodes = 0 # number of games played during training
 epsilon = 0.9
 sgd = SGD(lr)
 adam = Adam(lr)
+rmsprop = RMSprop(lr)
 
 # Build all necessary models: V, mu, and L networks.
 model = Sequential()
-model.add(Dense(4, input_dim=in_shape, init='zero'))
+model.add(Dense(8, input_dim=in_shape, init='zero'))
 model.add(Activation('relu'))
 model.add(Dense(4, init='zero'))
 model.add(Activation('relu'))
 model.add(Dense(nb_actions, init='zero'))
 model.add(Activation('softmax'))
 print(model.summary())
-model.compile(optimizer=adam,
+model.compile(optimizer=rmsprop,
           loss='mse',
-          metrics=['accuracy'])
+          metrics=None)
 
 done = False
 
@@ -63,8 +84,9 @@ tList = [] # time steps in a game
 rList = [] # rewards at each time step
 games_won = 0 # games that agent has won
 
-for i in range(500):
+for i in range(games_to_play):
     num_episodes += 1
+    e = 1
 
     # Get the environment and extract the number of actions.
     #np.random.seed(123)
@@ -83,10 +105,12 @@ for i in range(500):
     Wall = []
     t = 0  # time steps in a game
 
+    epsilon = e
     # The Q-learning algorithm
-    while t < 1000:
+    while t < 100:
         t += 1
         W = model.get_weights()
+        #print(W)
         Wall.append(W)
 
         # We can choose to either look up in the model or perform a random jump according to epsilon
@@ -101,14 +125,14 @@ for i in range(500):
 
         # Get new state and reward from environment
         state1, reward, done, info = env.step(action)
-        #reward = reward - reward * t / 1000 # add increased reward as episodes increase but decreased as steps in episode increase
-
+        reward -= reward * t / 100
         Q1 = model.predict(np.identity(in_shape)[state1].reshape(1, in_shape), batch_size=1)
         #env.render()
 
         #print("Reward: {}".format(reward))
 
         Qtarget = Q_temp
+
         # if done and state1 != 63:
         #     Qtarget[0, action] = 0
         #     Qtarget[0] = Qtarget[0] / np.sum(Qtarget[0])
@@ -118,30 +142,35 @@ for i in range(500):
             Qtarget[0, action] = 0
 
         elif done and state1 == 63:
-            Qtarget[0, action] = reward
-            if t <= min(tList):
-                Qtarget[0, action] += 1
+            Qtarget[0, action] = reward + 1 * gamma
 
         else:
-            Qtarget[0, action] += gamma * np.max(Q1 - np.mean(Q1))
+            Qtarget[0, action] += reward + np.max(Q1) * gamma
 
         Qtarget[0] = Qtarget[0] / np.sum(Qtarget[0])
-        model.fit(np.identity(in_shape)[state].reshape(1, in_shape), Qtarget, verbose=0, nb_epoch=10)
 
+        MEM.appendleft((state, Qtarget))
+
+        x_train, y_train, batch_length = create_batch()
+
+        model.fit(x_train, y_train, batch_size=batch_length, verbose=0, nb_epoch=10)
         rAll += reward
         if done:
             if state1 == 63:
                 games_won += 1
                 print("Solved in {} steps".format(t))
             else:
-                env.render()
-            epsilon /= 1.1
+                print("Lost in {} steps".format(t))
             print("-----------------------------------------------------------------------")
             break
         state = state1
+        if epsilon > 0:
+            epsilon -= 1 / 100
+    if e > .05:
+        e -= 1 / games_to_play
     tList.append(num_episodes)
     rList.append(rAll)
-    # print("End of Episode", i, "\n")
+    print("End of Episode {} | epsilon: {}".format(i, epsilon))
 
 print("Score over time:", str(sum(rList) / num_episodes))
 print("Last score:", str(rList[-1]))
